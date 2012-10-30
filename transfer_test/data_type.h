@@ -37,5 +37,3 @@ typedef struct PolicyInfo_ {
 	int msgLength;
 }PolicyInfo;
 
-
-#define TARGET_CNT 10000

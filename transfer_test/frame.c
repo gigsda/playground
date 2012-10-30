@@ -52,7 +52,7 @@ int setFrame(char  frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgTy
 	switch(msgType) {
 		// CIN:char4  VIN:char16  PolicyVersion:short
 		case LINK_REQ:
-			setHeader(frame,version,serialNumber,msgType,HMC_CHAR_SIZE*4 + HMC_CHAR_SIZE*16 + HMC_SHORT_SIZE);
+		
 			strTmp = va_arg(marker, HMC_STRING);
 			memcpy(pos,strTmp,4);
 			pos += 4;
@@ -70,8 +70,7 @@ int setFrame(char  frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgTy
 		case SUBMIT_REQ:
 			//DupFlag:char1  RecordCnt:short  EvnetInternal:short Timestamp:char16 CanMsgLength:char1 CanMsg:char8
 	//		setHeader(frame,version,serialNumber,msgType,HMC_CHAR_SIZE*1 + HMC_SHORT_SIZE + HMC_SHORT_SIZE + HMC_CHAR_SIZE*16 + HMC_CHAR_SIZE*1 + HMC_CHAR_SIZE*8);
-	   		setHeader(frame,version,serialNumber,msgType,30);
-	 
+	   
 			charTmp = va_arg(marker, HMC_CHAR);
 			memcpy(pos,&charTmp,HMC_CHAR_SIZE);
 			pos += HMC_CHAR_SIZE;
@@ -88,17 +87,9 @@ int setFrame(char  frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgTy
 			pos += HMC_SHORT_SIZE;
 	
 			strTmp = va_arg(marker, HMC_STRING);
-			memcpy(pos,strTmp,HMC_CHAR_SIZE*16);
-			pos += HMC_CHAR_SIZE*16;
-	
-			charTmp = va_arg(marker, HMC_CHAR);
-			memcpy(pos,&charTmp,HMC_CHAR_SIZE);
-			pos += HMC_CHAR_SIZE;
-	
-			strTmp = va_arg(marker, HMC_STRING);
-			
-			memcpy(pos,strTmp,messageRepeat*HMC_CHAR_SIZE*8);
-			pos += messageRepeat*HMC_CHAR_SIZE*8;
+			memcpy(pos,strTmp,messageRepeat*25);
+			pos += messageRepeat*25;
+
 			break;
 
 		case SESSION_CLOSE_REQ:
@@ -107,6 +98,8 @@ int setFrame(char  frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgTy
 
 	}
 	*(pos) = (char)NULL;
+	setHeader(frame,version,serialNumber,msgType,pos-frame-8);
+	
 	return pos-frame;
 }
 

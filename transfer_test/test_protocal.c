@@ -28,22 +28,23 @@ int main(void)
 	CarInfo carInfo;
 	PolicyInfo poliyInfo;
 
-	
 	HMC_CHAR msg;
 	// If iMode!=0, non-blocking mode is enabled.
 	char *message;
 //	char buffer[HMC_MAX_SHORT + HMC_FRAME_HEADER_SIZE + 1 + CAN_MESSAGE_SIZE * HMC_MAX_SHORT] ;
 //	char *buffer ;
 //	char *messageBuf;
-	char buffer[30000] ;
-	char messageBuf[30000];
+	char buffer[350000] ;
+	char messageBuf[300000];
+	int real_cnt = 3000000;
+	int mergeCnt = 2500;
+	int limit_transfer = real_cnt/mergeCnt;
 
 	int closeFlag = false;
 	
-	int cnt = 100;
-	int sentCnt = 1;
+	int cnt = 0;
+	int submitCnt = 0;
 	int repeatCnt = 2;
-	int mergeCnt = 100;
 
 	struct timeval timeout;
 	time_t timer;
@@ -52,9 +53,7 @@ int main(void)
 	
 	int status = 0;
 	 
-	//buffer = (char*)malloc(HMC_MAX_SHORT + HMC_FRAME_HEADER_SIZE + 1 + CAN_MESSAGE_SIZE * HMC_MAX_SHORT);
-	//messageBuf = (char*)malloc(CAN_MESSAGE_SIZE * HMC_MAX_SHORT + 1;
-
+	printf("message %d merge factor %d\n",real_cnt,mergeCnt);
 	loadCarInfo(&carInfo);
 	loadPolicyInfo(&poliyInfo);
 	  
@@ -72,7 +71,7 @@ int main(void)
 		printf("restart work\n");
 	}
 
-	if (connectServer(&Socket,"192.168.100.67",5555) == 0) {	
+	if (connectServer(&Socket,"192.168.5.225",5555) == 0) {	
 		printf("fail connect to server retry");
 		goto START;
 	}
@@ -101,10 +100,12 @@ int main(void)
 					closeFlag = true;
 					break;
 				}
-				memcpy((void*)(messageBuf + i*CAN_MESSAGE_SIZE) ,(void*) message,CAN_MESSAGE_SIZE);
+				memcpy((void*)(messageBuf + i*25) ,(void*) "2012010203040500",16);
+				memcpy((void*)(messageBuf + i*25+16) ,(void*)"8" ,1);
+				memcpy((void*)(messageBuf + i*25+16+1) ,(void*) "abcdefg\n",8);
 			}
 			//skip parcing:  message to body 
-			frameLen = setFrame(buffer,1,cnt++,SUBMIT_REQ,(HMC_CHAR)0,(HMC_SHORT)i,(HMC_SHORT)0 ,"2012010203040500",(HMC_CHAR)8,messageBuf);
+			frameLen = setFrame(buffer,1,cnt++,SUBMIT_REQ,(HMC_CHAR)0,(HMC_SHORT)mergeCnt,(HMC_SHORT)0 ,messageBuf);
 
 			len = sendFrame(Socket,buffer,frameLen,0);
 			status = WATING_RECV_SUBMIT_ACK;
@@ -127,7 +128,7 @@ int main(void)
 		}
 
 		if(FD_ISSET(Socket,&readset)){
-			//memset(buffer,0, HMC_MAX_SHORT+HMC_FRAME_HEADER_SIZE+1);
+
 			len = recvFrame(Socket,buffer,1024);
 			parseFrame(buffer,&msg);
 		 	parseFrameSeq(buffer,&seq);
@@ -147,27 +148,23 @@ int main(void)
 						printf(" %d submit_ack_recved\n",cnt);
 					}
 					assert(seq != cnt-1);
-					
-					if (closeFlag == true) status = READY_SEND_CLOSE_SESSION_REQ;
+					submitCnt ++;
+					if (closeFlag == true || submitCnt >= limit_transfer) status = READY_SEND_CLOSE_SESSION_REQ;
 					break;
 
-				case SESSION_CLOSE_ACK:
-					printf("job done  CLOSE_SESSION_ACK get");
+				case 8: //SESSION_CLOSE_ACK:
+					printf("job done  CLOSE_SESSION_ACK get\n");
 					
 					goto END;
 			}
 		}
-		
-	 	 
- 
+		 
 	}
 	 
 END:
-	free(buffer);
-	free(messageBuf);
 	printEndTime();
 	closeConnect(Socket);
-
+	getchar();
 }
 
 

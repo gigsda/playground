@@ -25,7 +25,6 @@ char* popCANMessage()
 {
 	static int a = 1;
 	static char buf[10];
-	if (a >= TARGET_CNT) return NULL;
 	a++;
 	sprintf(buf,"%08d",a);
 	return buf;
