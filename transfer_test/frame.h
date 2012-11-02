@@ -4,6 +4,7 @@
 */
 #pragma once
 #include "data_type.h"
+ 
 
 
  
@@ -22,7 +23,6 @@ typedef enum
 	CODE_DISK_ERROR   = 2,
 	CODE_SERVER_ERROR = 3,
 
-
 	READY_SEND_LINK_REQ        = 11,
 	WATING_RECV_LINK_REQ_ACK   = 12,
 	READY_SEND_SUBMIT_REQ      = 13,
@@ -30,6 +30,7 @@ typedef enum
 	READY_SEND_CLOSE_SESSION_REQ= 15,
 	WAITNG_SESSION_CLOSE_ACK    = 16,
 } MsgType;
+
 
 
 #define HMC_FRAME_HEADER_SIZE  8

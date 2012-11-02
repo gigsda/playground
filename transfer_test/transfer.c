@@ -6,6 +6,7 @@
 #include "transfer.h"
 #include <stdio.h>
 #include "data_type.h"
+#include "logger.h"
 
 WSADATA WsaDat;
 u_long iMode=1;
@@ -55,7 +56,7 @@ int connectServer(SOCKET *Socket,const char *address,u_short port)
 	}
 
 	if(ioctlsocket(*Socket,FIONBIO,&iMode) == -1){
-		 printf("ioctlsocket error code : %d",WSAGetLastError());
+		 printf("ioctlsocket error code : %d\n",WSAGetLastError());
 		 return 0;
 	}
 
@@ -79,7 +80,7 @@ int recvFrame(SOCKET Socket,char * buffer,int size)
 	*(buffer+pos) = (char)NULL;
 	
 	if (len == -1 && pos == 0) {
-		 printf("recv error code : %d",WSAGetLastError());
+		 printf("recv error code : %d\n",WSAGetLastError());
 	}
 
 	return pos;
@@ -91,11 +92,11 @@ int sendFrame(SOCKET Socket,char *buffer,int len,int op)
 	int sentLenSum = 0;
 	 
 	while (len > sentLenSum) {
-		sentLen = send(Socket,buffer+sentLen,len - sentLenSum,op);
+		sentLen = send(Socket,buffer+sentLenSum,len - sentLenSum,op);
 		if (sentLen == 0) break;
 		sentLenSum += sentLen;
 	}
-	if (sentLen == -1) printf("error sending");
+	if (sentLen == -1) printf("error sending\n");
 	return sentLenSum;
 }
 

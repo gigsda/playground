@@ -37,3 +37,23 @@ typedef struct PolicyInfo_ {
 	int msgLength;
 }PolicyInfo;
 
+typedef struct _canFileMsg {
+   char timestamp[9];
+   char canMsgID[4];
+   char msgLen[2];
+   char canData[8];
+} CanFileMsg;
+
+typedef struct _canMsg {
+   HMC_CHAR timestamp[9];
+   HMC_SHORT canMsgLength;
+   HMC_CHAR canData[8];
+} CanMsg;
+
+typedef struct _SubmitRequestBody {
+	HMC_CHAR dupFlag;
+	HMC_SHORT recordCnt;
+	HMC_SHORT eventInterval;
+	CanMsg CanMsgs[1000];
+} SubmitRequestBody;
+

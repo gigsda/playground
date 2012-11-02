@@ -1,5 +1,6 @@
 #include<time.h>
 #include<stdio.h>
+#include "logger.h"
 
 static clock_t startTimer;		
 
@@ -9,7 +10,7 @@ void printTime()
 	struct tm *t;
 	timer = time(NULL); // 현재 시각을 초 단위로 
 	t = localtime(&timer);	 
-	printf("%d:%d ",t->tm_min,t->tm_sec);
+	printf("%d:%d \n",t->tm_min,t->tm_sec);
 }
 
 
@@ -20,7 +21,7 @@ void setStartTime()
 	time_t timer = time(NULL); // 현재 시각을 초 단위로 
 	startTimer = clock();
 	t = localtime(&timer);	 
-	printf("%d:%d ",t->tm_min,t->tm_sec);
+	printf("%d:%d \n",t->tm_min,t->tm_sec);
 }
 
 
@@ -37,5 +38,5 @@ void printEndTime()
 	
 	endTimer = endTimer - startTimer;
  
-	printf("time consume: %ld msec",endTimer);
+	printf("time consume: %ld msec\n",endTimer);
 }

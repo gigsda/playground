@@ -10,16 +10,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <assert.h>
 #include "data_type.h"
 #include "frame.h"
 #include "transfer.h"
 #include "data_source.h"
 #include "util.h"
+#include "common.h"
+#include "logger.h"
 
 #pragma comment(lib,"ws2_32.lib")
 
-#define assert(x) if (x == false) printf("assert fail file:%d line:%d",__FILE__,__LINE__); 
-   
 int main(void)
 {
 	SOCKET Socket = NULL;
@@ -29,15 +30,11 @@ int main(void)
 	PolicyInfo poliyInfo;
 
 	HMC_CHAR msg;
-	// If iMode!=0, non-blocking mode is enabled.
-	char *message;
-//	char buffer[HMC_MAX_SHORT + HMC_FRAME_HEADER_SIZE + 1 + CAN_MESSAGE_SIZE * HMC_MAX_SHORT] ;
-//	char *buffer ;
-//	char *messageBuf;
-	char buffer[350000] ;
-	char messageBuf[300000];
+	char buffer[1024] ;
+	SubmitRequestBody submitRequestBody;
+	CanFileMsg canFileMsg;
 	int real_cnt = 3000000;
-	int mergeCnt = 2500;
+	int mergeCnt = 3;
 	int limit_transfer = real_cnt/mergeCnt;
 
 	int closeFlag = false;
@@ -47,13 +44,12 @@ int main(void)
 	int repeatCnt = 2;
 
 	struct timeval timeout;
-	time_t timer;
 
-	fd_set readset,writeset,tmpset;
+	fd_set readset,tmpset;
 	
 	int status = 0;
 	 
-	printf("message %d merge factor %d\n",real_cnt,mergeCnt);
+	info("message %d merge factor %d\n",real_cnt,mergeCnt);
 	loadCarInfo(&carInfo);
 	loadPolicyInfo(&poliyInfo);
 	  
@@ -68,11 +64,11 @@ int main(void)
 	
 	if (Socket != NULL) {
 		closeConnect(Socket);
-		printf("restart work\n");
+		info("restart work\n");
 	}
 
-	if (connectServer(&Socket,"192.168.5.225",5555) == 0) {	
-		printf("fail connect to server retry");
+	if (connectServer(&Socket,"192.168.100.67",5555) == 0) {	
+		info("fail connect to server retry\n");
 		goto START;
 	}
 	 
@@ -95,27 +91,39 @@ int main(void)
 		case READY_SEND_SUBMIT_REQ:
 			//merge message 	
 			for (i = 0;i < mergeCnt; i++) {
-				message = popCANMessage();
-				if (message == NULL){
-					closeFlag = true;
-					break;
+				result = popCANMessage(&canFileMsg);
+
+				// if file is queue is empty wait and retry
+				if (result == FILE_NOT_EXIST && i == 0){
+					info("waiting file .....\n");
+					Sleep(1000);
+					i = -1;
+					continue;
 				}
-				memcpy((void*)(messageBuf + i*25) ,(void*) "2012010203040500",16);
-				memcpy((void*)(messageBuf + i*25+16) ,(void*)"8" ,1);
-				memcpy((void*)(messageBuf + i*25+16+1) ,(void*) "abcdefg\n",8);
+				else if (result == FILE_NOT_EXIST)
+					break;
+				memcpy(submitRequestBody.CanMsgs[i].timestamp,canFileMsg.timestamp ,9);
+				//memcpy(submitRequestBody.CanMsgs[i].timestamp,canFileMsg.msgLen ,9);
+				submitRequestBody.CanMsgs[i].canMsgLength = 8;
+				memcpy(submitRequestBody.CanMsgs[i].canData , canFileMsg.canData,8);
+
 			}
+			submitRequestBody.dupFlag = 0;
+			submitRequestBody.recordCnt = i;
+			submitRequestBody.eventInterval = 0;
 			//skip parcing:  message to body 
-			frameLen = setFrame(buffer,1,cnt++,SUBMIT_REQ,(HMC_CHAR)0,(HMC_SHORT)mergeCnt,(HMC_SHORT)0 ,messageBuf);
+ 			frameLen = setFrame(buffer,1,cnt++,SUBMIT_REQ,&submitRequestBody);
 
 			len = sendFrame(Socket,buffer,frameLen,0);
+			trace("message sent %d\n",cnt);
 			status = WATING_RECV_SUBMIT_ACK;
-			if (len != frameLen){printf("fail seding submit req");goto START;}
+			if (len != frameLen){info("fail seding submit req\n");goto START;}
 			break;
 
 		case READY_SEND_CLOSE_SESSION_REQ:
 			frameLen = setFrame(buffer,1,cnt++,SESSION_CLOSE_REQ);
 			len = sendFrame(Socket,buffer,frameLen,0);
-			if (len != frameLen) {printf("fail seding session close req");goto START;}
+			if (len != frameLen) {info("fail seding session close req\n");goto START;}
 			break;
 		}
 		
@@ -124,7 +132,7 @@ int main(void)
 		readset = tmpset;
 		
 		if (result == -1) {
-			 printf("error code : %d",WSAGetLastError());
+			 info("select error - error code : %d\n",WSAGetLastError());
 		}
 
 		if(FD_ISSET(Socket,&readset)){
@@ -137,28 +145,29 @@ int main(void)
 					assert(status == WATING_RECV_LINK_REQ_ACK);
 
 					status = READY_SEND_SUBMIT_REQ;
-					printf("get LINK_ACK\n");
+					trace("get LINK_ACK\n");
 					break;
 
 				case SUBMIT_ACK:
+				    trace("ack recevedt %d\n",cnt);
+
 					assert(status == WATING_RECV_SUBMIT_ACK);
 					status = READY_SEND_SUBMIT_REQ; // ready send
-					if (cnt % 1000==0){			
+					if (submitCnt % 100==0){			
 						printTime();
-						printf(" %d submit_ack_recved\n",cnt);
+						debug(" %d submit_ack_recved\n",cnt);
 					}
 					assert(seq != cnt-1);
 					submitCnt ++;
 					if (closeFlag == true || submitCnt >= limit_transfer) status = READY_SEND_CLOSE_SESSION_REQ;
 					break;
 
-				case 8: //SESSION_CLOSE_ACK:
-					printf("job done  CLOSE_SESSION_ACK get\n");
+				case SESSION_CLOSE_ACK:  
+					trace("job done  CLOSE_SESSION_ACK get\n");
 					
 					goto END;
 			}
-		}
-		 
+		}	 
 	}
 	 
 END:

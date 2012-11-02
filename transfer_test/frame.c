@@ -6,7 +6,7 @@
 #include "frame.h"
 #include <stdio.h>
 #include <WinSock2.h>
-
+#include "logger.h"
 
 
 char* setHeader(char  frame[],HMC_CHAR version,HMC_INT serialNumber, HMC_CHAR msgType, HMC_SHORT bodyLength)
@@ -38,11 +38,13 @@ int setFrame(char  frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgTy
 {
 	va_list marker;
 	char *pos = frame;
+	int recordCnt = 0;
+	int i;
 
 	HMC_STRING strTmp;
-	HMC_SHORT charTmp;
 	HMC_SHORT shortTmp;
-	int messageRepeat;
+	SubmitRequestBody *submitRequestBodyTmp;
+
 
 	serialNumber = htonl(serialNumber);
 	
@@ -71,33 +73,35 @@ int setFrame(char  frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgTy
 			//DupFlag:char1  RecordCnt:short  EvnetInternal:short Timestamp:char16 CanMsgLength:char1 CanMsg:char8
 	//		setHeader(frame,version,serialNumber,msgType,HMC_CHAR_SIZE*1 + HMC_SHORT_SIZE + HMC_SHORT_SIZE + HMC_CHAR_SIZE*16 + HMC_CHAR_SIZE*1 + HMC_CHAR_SIZE*8);
 	   
-			charTmp = va_arg(marker, HMC_CHAR);
-			memcpy(pos,&charTmp,HMC_CHAR_SIZE);
-			pos += HMC_CHAR_SIZE;
+			submitRequestBodyTmp = (SubmitRequestBody*)va_arg(marker, void*);
+			recordCnt = submitRequestBodyTmp->recordCnt;
+			//fix byte order
+			submitRequestBodyTmp->recordCnt = htons(submitRequestBodyTmp->recordCnt); 
 
-			shortTmp = va_arg(marker, HMC_SHORT);
-			messageRepeat = shortTmp;
-			shortTmp = htons(shortTmp);
-			memcpy(pos,&shortTmp,HMC_SHORT_SIZE);
-			pos += HMC_SHORT_SIZE;
-			
-			shortTmp = va_arg(marker, HMC_SHORT);
-			shortTmp = htons(shortTmp);
-			memcpy(pos,&shortTmp,HMC_SHORT_SIZE);
-			pos += HMC_SHORT_SIZE;
-	
-			strTmp = va_arg(marker, HMC_STRING);
-			memcpy(pos,strTmp,messageRepeat*25);
-			pos += messageRepeat*25;
+			memcpy(pos,&submitRequestBodyTmp->dupFlag, 1);
+			pos += 1;
+			memcpy(pos,&submitRequestBodyTmp->recordCnt,  2);
+			pos += 2;
+			memcpy(pos,&submitRequestBodyTmp->eventInterval,2);
+			pos += 2;
 
+			for (i = 0;i < recordCnt ; i++) {
+				memcpy(pos,&(submitRequestBodyTmp->CanMsgs[i].timestamp),9);
+				pos += 9;
+				memcpy(pos,&(submitRequestBodyTmp->CanMsgs[i].canMsgLength),1);
+				pos += 1;
+				memcpy(pos,&(submitRequestBodyTmp->CanMsgs[i].canData),8);
+				pos += 8;
+			}			
 			break;
 
 		case SESSION_CLOSE_REQ:
-			setHeader(frame,version,serialNumber,msgType,0);
+			 
 			break;
 
 	}
 	*(pos) = (char)NULL;
+	// msgType,pos-frame-8 means body size ( all frame size - 8 (header size))
 	setHeader(frame,version,serialNumber,msgType,pos-frame-8);
 	
 	return pos-frame;
