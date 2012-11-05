@@ -38,16 +38,16 @@ typedef struct PolicyInfo_ {
 }PolicyInfo;
 
 typedef struct _canFileMsg {
-   char timestamp[9];
-   char canMsgID[4];
-   char msgLen[2];
-   char canData[8];
+   char timestamp[9+1];
+   char canMsgID[4+1];
+   char msgLen[2+1];
+   char canData[8+1];
 } CanFileMsg;
 
 typedef struct _canMsg {
-   HMC_CHAR timestamp[9];
+   HMC_CHAR timestamp[9+1];
    HMC_SHORT canMsgLength;
-   HMC_CHAR canData[8];
+   HMC_CHAR canData[8+1];
 } CanMsg;
 
 typedef struct _SubmitRequestBody {

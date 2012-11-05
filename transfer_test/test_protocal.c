@@ -33,15 +33,15 @@ int main(void)
 	char buffer[1024] ;
 	SubmitRequestBody submitRequestBody;
 	CanFileMsg canFileMsg;
-	int real_cnt = 3000000;
 	int mergeCnt = 3;
-	int limit_transfer = real_cnt/mergeCnt;
+
+	int policy_version = 1;
 
 	int closeFlag = false;
 	
 	int cnt = 0;
 	int submitCnt = 0;
-	int repeatCnt = 2;
+	int can_msg_cnt = 0;
 
 	struct timeval timeout;
 
@@ -49,7 +49,7 @@ int main(void)
 	
 	int status = 0;
 	 
-	info("message %d merge factor %d\n",real_cnt,mergeCnt);
+	info("message merge factor %d\n",mergeCnt);
 	loadCarInfo(&carInfo);
 	loadPolicyInfo(&poliyInfo);
 	  
@@ -67,7 +67,7 @@ int main(void)
 		info("restart work\n");
 	}
 
-	if (connectServer(&Socket,"192.168.100.67",5555) == 0) {	
+	if (connectServer(&Socket,"192.168.5.225",5555) == 0) {	
 		info("fail connect to server retry\n");
 		goto START;
 	}
@@ -83,7 +83,7 @@ int main(void)
 		 	
 		switch(status) {
 		case READY_SEND_LINK_REQ:		
-			frameLen = setFrame(buffer,1,cnt++,LINK_REQ, carInfo.cin , carInfo.vin, 1);
+			frameLen = setFrame(buffer,policy_version,cnt++,LINK_REQ, carInfo.cin , carInfo.vin, 1);
 			status = WATING_RECV_LINK_REQ_ACK;
 			len = sendFrame(Socket,buffer,frameLen,0);
 			break;
@@ -95,33 +95,34 @@ int main(void)
 
 				// if file is queue is empty wait and retry
 				if (result == FILE_NOT_EXIST && i == 0){
-					info("waiting file .....\n");
+					info("waiting file ..... %d can msg sent.\n",can_msg_cnt);
 					Sleep(1000);
 					i = -1;
 					continue;
 				}
 				else if (result == FILE_NOT_EXIST)
 					break;
-				memcpy(submitRequestBody.CanMsgs[i].timestamp,canFileMsg.timestamp ,9);
-				//memcpy(submitRequestBody.CanMsgs[i].timestamp,canFileMsg.msgLen ,9);
-				submitRequestBody.CanMsgs[i].canMsgLength = 8;
-				memcpy(submitRequestBody.CanMsgs[i].canData , canFileMsg.canData,8);
-
+				memcpy(submitRequestBody.CanMsgs[i].timestamp,canFileMsg.timestamp ,CAN_TIMESTAMP_LENGTH);
+ 
+				// convert msg length(string) to int 
+				submitRequestBody.CanMsgs[i].canMsgLength = atoi(canFileMsg.msgLen);
+				memcpy(submitRequestBody.CanMsgs[i].canData , canFileMsg.canData,submitRequestBody.CanMsgs[i].canMsgLength);
+				can_msg_cnt++;
 			}
 			submitRequestBody.dupFlag = 0;
 			submitRequestBody.recordCnt = i;
 			submitRequestBody.eventInterval = 0;
 			//skip parcing:  message to body 
- 			frameLen = setFrame(buffer,1,cnt++,SUBMIT_REQ,&submitRequestBody);
+ 			frameLen = setFrame(buffer,policy_version,cnt++,SUBMIT_REQ,&submitRequestBody);
 
 			len = sendFrame(Socket,buffer,frameLen,0);
-			trace("message sent %d\n",cnt);
+			trace("message frame sent %d\n",cnt);
 			status = WATING_RECV_SUBMIT_ACK;
 			if (len != frameLen){info("fail seding submit req\n");goto START;}
 			break;
 
 		case READY_SEND_CLOSE_SESSION_REQ:
-			frameLen = setFrame(buffer,1,cnt++,SESSION_CLOSE_REQ);
+			frameLen = setFrame(buffer,policy_version,cnt++,SESSION_CLOSE_REQ);
 			len = sendFrame(Socket,buffer,frameLen,0);
 			if (len != frameLen) {info("fail seding session close req\n");goto START;}
 			break;
@@ -159,7 +160,7 @@ int main(void)
 					}
 					assert(seq != cnt-1);
 					submitCnt ++;
-					if (closeFlag == true || submitCnt >= limit_transfer) status = READY_SEND_CLOSE_SESSION_REQ;
+					if (closeFlag == true ) status = READY_SEND_CLOSE_SESSION_REQ;
 					break;
 
 				case SESSION_CLOSE_ACK:  

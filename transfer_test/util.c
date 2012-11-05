@@ -12,9 +12,7 @@ void printTime()
 	t = localtime(&timer);	 
 	printf("%d:%d \n",t->tm_min,t->tm_sec);
 }
-
-
-
+ 
 void setStartTime()
 {
 	struct tm *t;
@@ -23,9 +21,7 @@ void setStartTime()
 	t = localtime(&timer);	 
 	printf("%d:%d \n",t->tm_min,t->tm_sec);
 }
-
-
-
+ 
 void printEndTime()
 {
 	static time_t timer;

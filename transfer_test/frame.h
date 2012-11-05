@@ -33,6 +33,9 @@ typedef enum
 
 
 
+#define CAN_TIMESTAMP_LENGTH 9
+
+
 #define HMC_FRAME_HEADER_SIZE  8
 #define CAN_MESSAGE_SIZE 8
 

@@ -15,13 +15,10 @@
 #include "util.h"
 #include "logger.h"
 
-
 wchar_t tFileName[MAX_FILE_NAME_LEN];
 static FILE *fp = NULL;
 static char openFilePath[MAX_FILE_NAME_LEN];
 	
-
-
 FILE * getNextFileCanDataFile() {
 
 	WIN32_FIND_DATA FindFileData;
@@ -30,7 +27,7 @@ FILE * getNextFileCanDataFile() {
     hFind = FindFirstFile(TEXT(CANDATA_FILE_FILTER), &FindFileData);
     if (hFind == INVALID_HANDLE_VALUE) 
     {
-       info ("FindFirstFile failed (%d)\n", GetLastError());
+       debug ("FindFirstFile failed (%d)\n", GetLastError());
        return NULL;
     } 
     else 
@@ -52,7 +49,7 @@ FILE * getNextFileCanDataFile() {
 	strcat(openFilePath,WCharToChar(tFileName));
 	//openFilePath = 0x0012fa00 ".\root\src\K9_20121017112249.done"
 	 
-	fp = fopen(openFilePath, "r");
+	fp = fopen(openFilePath, "rb");
 	
     if (fp == NULL)
 		info("failed to open file %d: %s\n",GetLastError(),WCharToChar(tFileName));
@@ -88,12 +85,7 @@ int moveCurrentCanDataFileToRetainDir(const char * path) {
 		 return FAIL;
 	 }
 }
-void printHex(void *data,int len){
-	int i;
-	for (i = 0;i < len ;i++){
-		printf("%02X",*((unsigned char*)data+i));
-	}
-}
+
 
 /*
    return vaule :
@@ -110,16 +102,16 @@ int getMsgFromFile(CanFileMsg * cfm) {
 	if (fp == NULL) {
 		fp = getNextFileCanDataFile();
 		offset = 0;
-	} 
-	if (offset == 0x0fc0) {
-		printf("heere");
-	}
+	}  
 
 	if (fp == NULL) return FILE_NOT_EXIST;
-    printf("%05X:%05X[",ftell(fp),offset);
+    trace("%05X:%05X[",ftell(fp),offset);
+
 	offset+=24;
+
 	readLen = fread((void*)cfm->timestamp,9,1,fp);
     if (readLen != 1) {
+		if ( feof(fp) != 0) goto FILE_ENDED;
 		debug("src line : %d error while read file in FILE: %s at offset :%ld \n",__LINE__,WCharToChar(tFileName), ftell(fp));
 		return FAIL;
 	}
@@ -128,7 +120,8 @@ int getMsgFromFile(CanFileMsg * cfm) {
 		debug("src line : %d error while read file in FILE: %s at offset :%ld \n",__LINE__,WCharToChar(tFileName), ftell(fp));
 		return FAIL;
 	}
-		readLen = fread((void*)cfm->msgLen,2,1,fp);
+	readLen = fread((void*)cfm->msgLen,2,1,fp);
+	cfm->msgLen[2] = NULL;
     if (readLen != 1){
 		debug("src line : %d error while read file in FILE: %s at offset :%ld \n",__LINE__,WCharToChar(tFileName), ftell(fp));
 		return FAIL;
@@ -143,16 +136,17 @@ int getMsgFromFile(CanFileMsg * cfm) {
 		debug("src line : %d error while read file in FILE: %s at offset :%ld \n",__LINE__,WCharToChar(tFileName), ftell(fp));
 		return FAIL;
 	}
-	
-	printHex(cfm->timestamp,9);
-	printHex(cfm->canMsgID,4);
-	printHex(cfm->msgLen,2);
-	printHex(cfm->canData,8);
-	printHex(&check,1);
-	printf("]\n");
-	
+ 
+	printHex(LTRACE,cfm->timestamp,9);
+	printHex(LTRACE,cfm->canMsgID,4);
+	printHex(LTRACE,cfm->msgLen,2);
+	printHex(LTRACE,cfm->canData,8);
+	printHex(LTRACE,&check,1);
+	trace("]\n");
+ 
 
-	if (feof(fp)) {
+	if ( feof(fp) != 0) {
+		FILE_ENDED:
 		if (fclose(fp) != 0) printreturn(FAIL);
 		info("file read done %s \n",WCharToChar(tFileName));
 		return moveCurrentCanDataFileToRetainDir(READ_FILE_RETAIN_DIR);
@@ -173,7 +167,7 @@ int	loadCarInfo(CarInfo *carInfo)
 	infoFile = fopen(carInfoPath, "r");
 	
     if (fp == NULL)
-		info("failed to open file %d: %s\n",GetLastError(),WCharToChar(tFileName));
+		info("failed to open vehicle info file %d : %s\n",GetLastError(),WCharToChar(tFileName));
 	else
 		info("opened file : %s\n",openFilePath);
 
