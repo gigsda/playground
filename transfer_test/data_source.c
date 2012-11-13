@@ -18,7 +18,11 @@
 wchar_t tFileName[MAX_FILE_NAME_LEN];
 static FILE *fp = NULL;
 static char openFilePath[MAX_FILE_NAME_LEN];
-	
+
+HMC_SHORT msgFilterList[1024];
+int  msgFilterSize = 0;
+HMC_SHORT filePolicyVersion = 0;
+
 FILE * getNextFileCanDataFile() {
 
 	WIN32_FIND_DATA FindFileData;
@@ -44,17 +48,17 @@ FILE * getNextFileCanDataFile() {
        FindClose(hFind);
     }
 
-
-	strcpy(openFilePath,CANDATA_FILE_PATH);
+ 	strcpy(openFilePath,CANDATA_FILE_PATH);
 	strcat(openFilePath,WCharToChar(tFileName));
 	//openFilePath = 0x0012fa00 ".\root\src\K9_20121017112249.done"
 	 
 	fp = fopen(openFilePath, "rb");
 	
-    if (fp == NULL)
+    if (GetLastError() != 0 || fp == NULL)
 		info("failed to open file %d: %s\n",GetLastError(),WCharToChar(tFileName));
 	else
 		info("opened file : %s\n",openFilePath);
+
 	return fp;
 }
 
@@ -143,8 +147,7 @@ int getMsgFromFile(CanFileMsg * cfm) {
 	printHex(LTRACE,cfm->canData,8);
 	printHex(LTRACE,&check,1);
 	trace("]\n");
- 
-
+  
 	if ( feof(fp) != 0) {
 		FILE_ENDED:
 		if (fclose(fp) != 0) printreturn(FAIL);
@@ -152,8 +155,7 @@ int getMsgFromFile(CanFileMsg * cfm) {
 		return moveCurrentCanDataFileToRetainDir(READ_FILE_RETAIN_DIR);
 		fp = NULL;
 	}
-	
-	return SUCCESS;
+  	return SUCCESS;
 }
 
 
@@ -164,23 +166,144 @@ int	loadCarInfo(CarInfo *carInfo)
 	strcpy(carInfoPath,READ_FILE_POLICY_DIR);
 	strcat(carInfoPath,READ_FILE_CAR_INFO_NAME);
 
-	infoFile = fopen(carInfoPath, "r");
+	infoFile = fopen(carInfoPath, "rt");
 	
-    if (fp == NULL)
-		info("failed to open vehicle info file %d : %s\n",GetLastError(),WCharToChar(tFileName));
-	else
+    if (GetLastError() != 0  ) {
+
+		strcpy((char*)carInfo->cin,"00k9");
+		strcpy((char*)carInfo->vin,"132435467fffek9");
+		
+		info("failed to open vehicle info file %d : %s , setting initial values: cin %s vin %s\n",GetLastError(),WCharToChar(tFileName
+			),carInfo->cin,carInfo->vin);
+
+	} else {
 		info("opened file : %s\n",openFilePath);
+	
+		if (fscanf(infoFile,"CIN=%s\nVIN=%s",(char*)carInfo->cin,(char*)carInfo->vin) == -1){
+			info("filed to read vehicle info file : wrong format! %d\n",GetLastError());
+		}
+
+		carInfo->cin[4] = NULL;
+		carInfo->vin[16] = NULL;
+	}
 
 	fclose(infoFile);
 
-	strcpy((char*)carInfo->cin,"00k9");
-	strcpy((char*)carInfo->vin,"132435467fffek9");
 	return SUCCESS;
 }
 
-int loadPolicyInfo(PolicyInfo *policyInfo)
+
+void printMsgFilter()
 {
+	int i;
+	printf("MsgFilter %d :",msgFilterSize);
+	for (i = 0;i < msgFilterSize; i++) {
+		printf("%d, ",msgFilterList[i]);
+	}
+	printf("\n");
+}
+
+int loadPolicyInfo()
+{
+	int i,result;
+	char policyInfoPath[MAX_FILE_NAME_LEN];
+	FILE *policyFile;
+	strcpy(policyInfoPath,READ_FILE_POLICY_DIR);
+	strcat(policyInfoPath,READ_FILE_CAR_POLICY_NAME);
+
+ 
+	policyFile = fopen(policyInfoPath, "rt");
+	
+    if (GetLastError() != 0) {
+
+		info("failed to load vehicle policy file %d : %s  \n",GetLastError(),WCharToChar(tFileName));
+		msgFilterSize = 0;
+		filePolicyVersion = 1; // need update
+
+	} else {
+		info("opened policy info file : %s\n",openFilePath);
+	
+		if ((result = fscanf(policyFile,"#%d\n",&filePolicyVersion)) == 1){
+
+			for (i = 0;i < 1024; i++){
+				if ((result = fscanf(policyFile,"%d\n",&msgFilterList[i])) == 1) break;
+				if (result == -1)break;
+			}
+			msgFilterSize = i;
+		}else {
+			info("failed to open policy info file : %s , set default policy\n",openFilePath);
+
+			msgFilterSize = 0;
+			filePolicyVersion = 1; // need update
+		}
+	}
+	info("current policy version #%d   \n",filePolicyVersion);
+	printMsgFilter();
+	if (policyFile != NULL)
+		fclose(policyFile);
 	return SUCCESS;
+}
+
+
+int savePolicyInfo()
+{
+	int i;
+	char policyInfoPath[MAX_FILE_NAME_LEN];
+	FILE *policyFile;
+	strcpy(policyInfoPath,READ_FILE_POLICY_DIR);
+	strcat(policyInfoPath,READ_FILE_CAR_POLICY_NAME);
+
+	policyFile = fopen(policyInfoPath, "w+");
+	
+    if (GetLastError() != 0 && GetLastError() != 131) {
+
+		info("failed to save vehicle policy file %d : %s  \n",GetLastError(),WCharToChar(tFileName));
+
+	} else {
+		info("opened policy info file : %s \n",openFilePath);
+	
+		if (fprintf(policyFile,"#%d\n",filePolicyVersion) == 3){
+			 
+			for (i = 0;i < msgFilterSize; i++){
+				if (fprintf(policyFile,"%d\n",msgFilterList[i]) == 1) break;
+			}
+			msgFilterSize = i;
+		} 
+	}
+	info("current policy version #%d   \n",filePolicyVersion);
+	printMsgFilter();
+	if (policyFile != NULL)
+		fclose(policyFile);
+	return SUCCESS;
+}
+
+
+int canMsgFilter(char *str){
+	int i = 0;
+	HMC_SHORT canMsgID = atol(str);
+	//TODO: need optimize search algorithm
+	if (msgFilterSize == 0) return SUCCESS;
+
+	for (i = 0;i < msgFilterSize; i++){
+		if (msgFilterList[i] == canMsgID) return SUCCESS;	
+	}
+	return FALSE;
+}
+
+int getPolicyVersion()
+{
+	return filePolicyVersion;
+}
+ 
+void setPolicy(HMC_SHORT policyVersion,HMC_SHORT *canMsgID,int canMsgIdSize)
+{
+	int i;
+	filePolicyVersion = policyVersion;
+	msgFilterSize = canMsgIdSize;
+
+	for (i = 0;i < msgFilterSize; i++){
+		msgFilterList[i] = canMsgID[i];	
+	}
 }
 
 /*

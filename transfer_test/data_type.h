@@ -25,8 +25,8 @@ typedef char HMC_BCD; // todo: use 1/2 byte
 #define true 1
 
 typedef struct CarInfo_ {
-	HMC_CHAR cin[4];
-	HMC_CHAR vin[16];
+	HMC_CHAR cin[4+1];
+	HMC_CHAR vin[16+1];
 }CarInfo;
 
 
@@ -57,3 +57,9 @@ typedef struct _SubmitRequestBody {
 	CanMsg CanMsgs[1000];
 } SubmitRequestBody;
 
+typedef struct _LinkAckResponseData {
+	HMC_CHAR result;
+	HMC_SHORT canMsgID[1024];
+	HMC_SHORT policyVersion;
+	int canMsgIdSize;
+} LinkAckResponseData;

@@ -15,12 +15,20 @@
 
 #define READ_FILE_POLICY_DIR ".\\root\\policy\\"
 #define READ_FILE_CAR_INFO_NAME "car.info"
+#define READ_FILE_CAR_POLICY_NAME "policy.info"
 
 
 FILE * getNextFileCanDataFile();
 int moveCurrentCanDataFileToRetainDir(const char *path);
 int getMsgFromFile(CanFileMsg * cfm);
+
 int	loadCarInfo(CarInfo *carInfo);
-int loadPolicyInfo(PolicyInfo *policyInfo);
+int loadPolicyInfo();
+int savePolicyInfo();
+int getPolicyVersion();
+ void setPolicy(HMC_SHORT policyVersion,HMC_SHORT *canMsgID,int canMsgIdSize);
+
 int popCANMessage(CanFileMsg *cfm);
+
+int canMsgFilter(char *str);
 

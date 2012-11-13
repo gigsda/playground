@@ -21,7 +21,7 @@
 
 #pragma comment(lib,"ws2_32.lib")
 
-int main(void)
+int main(int argc, char* argv[])
 {
 	SOCKET Socket = NULL;
 	int len; 
@@ -42,19 +42,23 @@ int main(void)
 	int cnt = 0;
 	int submitCnt = 0;
 	int can_msg_cnt = 0;
+	HMC_SHORT bodyLength=0;
 
 	struct timeval timeout;
 
 	fd_set readset,tmpset;
 	
 	int status = 0;
+
+	LinkAckResponseData linkAckResponseData;
+
 	 
 	info("message merge factor %d\n",mergeCnt);
 	loadCarInfo(&carInfo);
-	loadPolicyInfo(&poliyInfo);
+	loadPolicyInfo();
 	  
 	timeout.tv_sec = 3;
-	timeout.tv_usec = 5000;
+	timeout.tv_usec = 500;
 
 	FD_ZERO(&readset);
 
@@ -67,9 +71,20 @@ int main(void)
 		info("restart work\n");
 	}
 
-	if (connectServer(&Socket,"192.168.5.225",5555) == 0) {	
-		info("fail connect to server retry\n");
-		goto START;
+	if (argv[1] != NULL)
+	info("try connecting to %s\n",argv[1]);
+
+	if (argc != 2) {
+		//if (connectServer(&Socket,"192.168.100.67",5555) == 0) {
+		if (connectServer(&Socket,"192.168.5.225",5555) == 0) {
+			info("fail connect to server retry\n");
+			goto START;
+		}
+	}else {
+		if (connectServer(&Socket,argv[1],5555) == 0) {	
+			info("fail connect to server retry\n");
+			goto START;		
+		}
 	}
 	 
 	FD_SET(Socket,&readset);
@@ -83,7 +98,7 @@ int main(void)
 		 	
 		switch(status) {
 		case READY_SEND_LINK_REQ:		
-			frameLen = setFrame(buffer,policy_version,cnt++,LINK_REQ, carInfo.cin , carInfo.vin, 1);
+			frameLen = setFrame(buffer,getPolicyVersion(),cnt++,LINK_REQ, carInfo.cin , carInfo.vin, 1);
 			status = WATING_RECV_LINK_REQ_ACK;
 			len = sendFrame(Socket,buffer,frameLen,0);
 			break;
@@ -94,7 +109,7 @@ int main(void)
 				result = popCANMessage(&canFileMsg);
 
 				// if file is queue is empty wait and retry
-				if (result == FILE_NOT_EXIST && i == 0){
+				if (result == FILE_NOT_EXIST && i == 0) {
 					info("waiting file ..... %d can msg sent.\n",can_msg_cnt);
 					Sleep(1000);
 					i = -1;
@@ -106,6 +121,10 @@ int main(void)
  
 				// convert msg length(string) to int 
 				submitRequestBody.CanMsgs[i].canMsgLength = atoi(canFileMsg.msgLen);
+				
+				// filter messageID
+				if (!canMsgFilter(canFileMsg.canMsgID)) continue;
+
 				memcpy(submitRequestBody.CanMsgs[i].canData , canFileMsg.canData,submitRequestBody.CanMsgs[i].canMsgLength);
 				can_msg_cnt++;
 			}
@@ -139,14 +158,26 @@ int main(void)
 		if(FD_ISSET(Socket,&readset)){
 
 			len = recvFrame(Socket,buffer,1024);
+			if (len == 0) {info("fail received packet try restart\n");goto START;}
+
 			parseFrame(buffer,&msg);
-		 	parseFrameSeq(buffer,&seq);
+		 	parseFrameSeq(buffer,&seq,&bodyLength);
 			switch(msg) {
 				case LINK_ACK:
 					assert(status == WATING_RECV_LINK_REQ_ACK);
-
 					status = READY_SEND_SUBMIT_REQ;
 					trace("get LINK_ACK\n");
+					parseLinkAckBody(buffer,&linkAckResponseData,bodyLength);
+					switch (linkAckResponseData.result) {
+						case 1:
+								trace("connection is not permit by server\n");
+								goto END;
+							break;
+						case 0:
+							setPolicy(linkAckResponseData.policyVersion,linkAckResponseData.canMsgID,linkAckResponseData.canMsgIdSize);
+							savePolicyInfo();
+							break;
+					}
 					break;
 
 				case SUBMIT_ACK:
@@ -158,7 +189,7 @@ int main(void)
 						printTime();
 						debug(" %d submit_ack_recved\n",cnt);
 					}
-					assert(seq != cnt-1);
+					 
 					submitCnt ++;
 					if (closeFlag == true ) status = READY_SEND_CLOSE_SESSION_REQ;
 					break;

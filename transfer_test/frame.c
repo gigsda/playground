@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <WinSock2.h>
 #include "logger.h"
+#include "common.h"
 
 
 char* setHeader(char  frame[],HMC_CHAR version,HMC_INT serialNumber, HMC_CHAR msgType, HMC_SHORT bodyLength)
@@ -114,10 +115,55 @@ int parseFrame(char *frame,HMC_CHAR *msg,...)
 	return 1;
 }
 
-int parseFrameSeq(char *frame,HMC_INT *seq,...)
+int parseFrameSeq(char *frame,HMC_INT *seq,HMC_SHORT *bodyLength,...)
 {
 	//todo: parsing body
 	memcpy(seq,(frame+1),HMC_INT_SIZE);
-	*seq = ntohl(*seq);
+	*seq = htons(*seq);
+	
+	memcpy(bodyLength,(frame+6),HMC_SHORT_SIZE);
+	*bodyLength = htons(*bodyLength);
+
 	return 1;
 }
+
+
+int parseLinkAckBody(char *frame,LinkAckResponseData *data,HMC_SHORT bodyLength)
+{
+	//todo: parsing body
+	int i=0;
+	char *tok;
+	char buf[1024];
+	frame += HMC_FRAME_HEADER_SIZE;
+	memcpy(&data->result , frame, HMC_CHAR_SIZE);
+	frame += HMC_CHAR_SIZE;
+	memcpy(buf , frame, bodyLength);
+
+	tok = strtok(buf,"\n");
+	if (tok == NULL) return SUCCESS;
+
+	if (sscanf(tok ,"#%d\n",&data->policyVersion) != 1) {
+		info("invalied policy info from server\n");
+		return FAIL;
+	}
+
+	tok = strtok(NULL,"\n");
+	if (tok == NULL) return SUCCESS;
+
+	while (tok != NULL) {
+		data->canMsgID[i++] = atoi(tok);
+		if (data->canMsgID[i-1] <= 0) {
+			info("invalied policy info from server\n");
+			return FAIL;
+		}
+		
+		tok = strtok(NULL,"\n");
+	}
+
+	data->canMsgIdSize = i;
+
+	return SUCCESS;
+}
+
+
+ 

@@ -43,4 +43,5 @@ typedef enum
 char* setHeader(char  frame[],HMC_CHAR version,HMC_INT serialNumber, HMC_CHAR msgType, HMC_SHORT bodyLength);
 int setFrame(char  frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgType,...);
 int parseFrame(char *frame,HMC_CHAR *msg,...);
-int parseFrameSeq(char *frame,HMC_INT *seq,...);
+int parseFrameSeq(char *frame,HMC_INT *seq,HMC_SHORT *bodyLength,...);
+int parseLinkAckBody(char *frame,LinkAckResponseData *data,HMC_SHORT bodyLength);
