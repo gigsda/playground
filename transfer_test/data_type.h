@@ -9,7 +9,7 @@ typedef unsigned __int16 HMC_SHORT;
 typedef unsigned __int32 HMC_LONG;
 typedef unsigned __int8 HMC_CHAR;
 typedef unsigned __int8 *HMC_STRING;
-typedef char HMC_BCD; // todo: use 1/2 byte
+typedef HMC_CHAR  HMC_BCD; // todo: use 1/2 byte
 
 #define HMC_MAX_INT    4294967295
 #define HMC_MAX_SHORT  65535
@@ -33,33 +33,31 @@ typedef struct CarInfo_ {
 
 typedef struct PolicyInfo_ {
 	HMC_SHORT policyVersion;
-	int *msg;
-	int msgLength;
+	HMC_INT *msg;
+	HMC_INT msgLength;
 }PolicyInfo;
 
-typedef struct _canFileMsg {
-   char timestamp[9+1];
-   char canMsgID[4+1];
-   char msgLen[2+1];
-   char canData[8+1];
-} CanFileMsg;
-
 typedef struct _canMsg {
-   HMC_CHAR timestamp[9+1];
-   HMC_SHORT canMsgLength;
-   HMC_CHAR canData[8+1];
+   HMC_CHAR  timestamp[9+1];
+   HMC_CHAR  channerID[1+1];  
+   HMC_CHAR  canMsgID[4+1];
+   HMC_CHAR  msgLen[1+1];
+   HMC_CHAR  canData[8+1];
+   HMC_CHAR  powerStep[1+1];
+   HMC_CHAR  voltage[2+1];
 } CanMsg;
 
+ 
 typedef struct _SubmitRequestBody {
 	HMC_CHAR dupFlag;
 	HMC_SHORT recordCnt;
 	HMC_SHORT eventInterval;
-	CanMsg CanMsgs[1000];
+	CanMsg CanMsgs[501];
 } SubmitRequestBody;
 
 typedef struct _LinkAckResponseData {
 	HMC_CHAR result;
 	HMC_SHORT canMsgID[1024];
 	HMC_SHORT policyVersion;
-	int canMsgIdSize;
+	HMC_INT canMsgIdSize;
 } LinkAckResponseData;

@@ -2,6 +2,7 @@
 * Copyright 2012 NexR
 * @author: tim.yang@nexr.com, gigsda@gmail.com
 */
+
 #pragma once
 #include "data_type.h"
  
@@ -40,8 +41,8 @@ typedef enum
 #define CAN_MESSAGE_SIZE 8
 
 
-char* setHeader(char  frame[],HMC_CHAR version,HMC_INT serialNumber, HMC_CHAR msgType, HMC_SHORT bodyLength);
-int setFrame(char  frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgType,...);
-int parseFrame(char *frame,HMC_CHAR *msg,...);
-int parseFrameSeq(char *frame,HMC_INT *seq,HMC_SHORT *bodyLength,...);
-int parseLinkAckBody(char *frame,LinkAckResponseData *data,HMC_SHORT bodyLength);
+HMC_CHAR * setHeader(HMC_CHAR   frame[],HMC_CHAR version,HMC_INT serialNumber, HMC_CHAR msgType, HMC_SHORT bodyLength);
+HMC_INT setFrame(char   frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgType,...);
+HMC_INT parseFrame(char  *frame,HMC_CHAR *msg,...);
+HMC_INT parseFrameSeq(char  *frame,HMC_INT *seq,HMC_SHORT *bodyLength,...);
+HMC_INT parseLinkAckBody(char  *frame,LinkAckResponseData *data,HMC_SHORT bodyLength);

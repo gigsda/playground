@@ -10,7 +10,7 @@
 #include "common.h"
 
 
-char* setHeader(char  frame[],HMC_CHAR version,HMC_INT serialNumber, HMC_CHAR msgType, HMC_SHORT bodyLength)
+char * setHeader(char  frame[],HMC_CHAR version,HMC_INT serialNumber, HMC_CHAR msgType, HMC_SHORT bodyLength)
 {
 	if (frame == NULL) 
 		return NULL;
@@ -35,12 +35,12 @@ char* setHeader(char  frame[],HMC_CHAR version,HMC_INT serialNumber, HMC_CHAR ms
 }
 
 
-int setFrame(char  frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgType,...)
+HMC_INT setFrame(char frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgType,...)
 {
 	va_list marker;
-	char *pos = frame;
-	int recordCnt = 0;
-	int i;
+	char  *pos = frame;
+	HMC_INT recordCnt = 0;
+	HMC_INT i;
 
 	HMC_STRING strTmp;
 	HMC_SHORT shortTmp;
@@ -89,10 +89,18 @@ int setFrame(char  frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgTy
 			for (i = 0;i < recordCnt ; i++) {
 				memcpy(pos,&(submitRequestBodyTmp->CanMsgs[i].timestamp),9);
 				pos += 9;
-				memcpy(pos,&(submitRequestBodyTmp->CanMsgs[i].canMsgLength),1);
+				memcpy(pos,&(submitRequestBodyTmp->CanMsgs[i].channerID),1);
+				pos += 1;
+				memcpy(pos,&(submitRequestBodyTmp->CanMsgs[i].canMsgID),4);
+				pos += 4;
+				memcpy(pos,&(submitRequestBodyTmp->CanMsgs[i].msgLen),1);
 				pos += 1;
 				memcpy(pos,&(submitRequestBodyTmp->CanMsgs[i].canData),8);
 				pos += 8;
+				memcpy(pos,&(submitRequestBodyTmp->CanMsgs[i].powerStep),1);
+				pos += 1;
+				memcpy(pos,&(submitRequestBodyTmp->CanMsgs[i].voltage),2);
+				pos += 2;
 			}			
 			break;
 
@@ -108,14 +116,14 @@ int setFrame(char  frame[] ,HMC_CHAR version,HMC_INT serialNumber,HMC_CHAR msgTy
 	return pos-frame;
 }
 
-int parseFrame(char *frame,HMC_CHAR *msg,...)
+HMC_INT parseFrame(char *frame,HMC_CHAR *msg,...)
 {
 	//todo: parsing body
 	*msg = (HMC_CHAR)(*(frame+5));
 	return 1;
 }
 
-int parseFrameSeq(char *frame,HMC_INT *seq,HMC_SHORT *bodyLength,...)
+HMC_INT parseFrameSeq(char  *frame,HMC_INT *seq,HMC_SHORT *bodyLength,...)
 {
 	//todo: parsing body
 	memcpy(seq,(frame+1),HMC_INT_SIZE);
@@ -128,12 +136,12 @@ int parseFrameSeq(char *frame,HMC_INT *seq,HMC_SHORT *bodyLength,...)
 }
 
 
-int parseLinkAckBody(char *frame,LinkAckResponseData *data,HMC_SHORT bodyLength)
+HMC_INT parseLinkAckBody(char  *frame,LinkAckResponseData *data,HMC_SHORT bodyLength)
 {
 	//todo: parsing body
-	int i=0;
-	char *tok;
-	char buf[1024];
+	HMC_INT i=0;
+	char  *tok;
+	char  buf[1024];
 	frame += HMC_FRAME_HEADER_SIZE;
 	memcpy(&data->result , frame, HMC_CHAR_SIZE);
 	frame += HMC_CHAR_SIZE;

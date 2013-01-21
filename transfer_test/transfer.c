@@ -12,7 +12,7 @@ WSADATA WsaDat;
 u_long iMode=1;
 
  
-int connectServer(SOCKET *Socket,const char *address,u_short port)
+int connectServer(SOCKET *Socket,const char  *address,u_short port)
 { 
 	struct hostent *host;
 	SOCKADDR_IN SockAddr;
@@ -63,7 +63,7 @@ int connectServer(SOCKET *Socket,const char *address,u_short port)
 	return 1;
 }
 
-int recvFrame(SOCKET Socket,char * buffer,int size)
+int recvFrame(SOCKET Socket,char  * buffer,HMC_INT size)
 {
 	int pos    = 0;
 	int len    = 1;
@@ -74,10 +74,10 @@ int recvFrame(SOCKET Socket,char * buffer,int size)
 		if (len > 0)
 			pos += len;
 		else
- 		if (len == -1)
+ 		if (len == -1 || len == 0)
 			break;
 	}
-	*(buffer+pos) = (char)NULL;
+	*(buffer+pos) = (HMC_CHAR )NULL;
 	
 	if (len == -1 && pos == 0) {
 		 printf("recv error code : %d\n",WSAGetLastError());
@@ -86,7 +86,7 @@ int recvFrame(SOCKET Socket,char * buffer,int size)
 	return pos;
 }
 
-int sendFrame(SOCKET Socket,char *buffer,int len,int op)
+int sendFrame(SOCKET Socket,char  *buffer,HMC_INT len,HMC_INT op)
 {
 	int sentLen = 0;
 	int sentLenSum = 0;

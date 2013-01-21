@@ -50,6 +50,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -79,18 +80,27 @@
     <ClInclude Include="data_source.h" />
     <ClInclude Include="frame.h" />
     <ClInclude Include="logger.h" />
+    <ClInclude Include="policy.h" />
     <ClInclude Include="transfer.h" />
-    <ClInclude Include="util.h" />
+    <ClInclude Include="time_util.h" />
     <ClInclude Include="win_dependent_util.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="data_source.c" />
     <ClCompile Include="frame.c" />
     <ClCompile Include="logger.c" />
-    <ClCompile Include="test_protocal.c" />
+    <ClCompile Include="policy.c" />
+    <ClCompile Include="sync_client.c" />
     <ClCompile Include="transfer.c" />
-    <ClCompile Include="util.c" />
+    <ClCompile Include="time_util.c" />
     <ClCompile Include="win_dependent_util.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

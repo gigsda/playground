@@ -27,9 +27,6 @@
     <ClInclude Include="data_source.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="util.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="win_dependent_util.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -39,11 +36,14 @@
     <ClInclude Include="logger.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="policy.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="time_util.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="test_protocal.c">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="transfer.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -53,13 +53,19 @@
     <ClCompile Include="data_source.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="util.c">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="win_dependent_util.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="logger.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="policy.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="time_util.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="sync_client.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
