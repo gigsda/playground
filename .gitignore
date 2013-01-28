@@ -1,0 +1,9 @@
+Debug/
+Release/
+*.opensdf
+*.sdf
+ipch/
+retain/
+src/
+policy/
+test_data/
