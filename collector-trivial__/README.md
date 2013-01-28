@@ -1,0 +1,4 @@
+collector-trivial
+=================
+
+collector-trivial
