@@ -1,6 +1,6 @@
 # import-rdb-webui
 ## 프로젝트 목적
-[Import 배치 작업](#Import_RDB_배치) 의(https://github.com/music-flo/reco-workflow/tree/master/import-rdb) 대상 테이블을 WebUI를 통해 관리합니다.
+[Import 배치 작업](#Import-RDB-배치) 의(https://github.com/music-flo/reco-workflow/tree/master/import-rdb) 대상 테이블을 WebUI를 통해 관리합니다.
  
 
 ## Requirements
@@ -44,7 +44,7 @@ python manage.py crontab remove
 ## 구조 및 주요 컴포넌트 설명
 
 ### 용어
-#### Import RDB 배치<a name="Import_RDB_배치"></a>
+#### Import RDB 배치
   - 외부의 배치 작업으로 'Parameter Store' 에 저장된 테이블 정보 목록을 가져와 Import 작업을 수행 합니다.
 #### Parameter Store
   - AWS Parameter Store 를 말하며, 테이블 정보 목록을 가지고 있습니다. 
